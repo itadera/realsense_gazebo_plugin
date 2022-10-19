@@ -43,6 +43,52 @@ RealSensePlugin::RealSensePlugin() {
 RealSensePlugin::~RealSensePlugin() {
 }
 
+template <class T>
+std::vector<std::string> split(const std::string& s, const T& separator, bool ignore_empty = 0, bool split_empty = 0) {
+  struct {
+    auto len(const std::string& s) {
+      return s.length();
+    }
+    auto len(const std::string::value_type* p) {
+      return p ? std::char_traits<std::string::value_type>::length(p) : 0;
+    }
+    auto len(const std::string::value_type c) {
+      return c == std::string::value_type() ? 0 : 1; /*return 1;*/
+    }
+  } util;
+
+  if (s.empty()) {  /// empty string ///
+    if (!split_empty || util.len(separator))
+      return { "" };
+    return {};
+  }
+
+  auto v = std::vector<std::string>();
+  auto n = static_cast<std::string::size_type>(util.len(separator));
+  if (n == 0) {  /// empty separator ///
+    if (!split_empty)
+      return { s };
+    for (auto&& c : s)
+      v.emplace_back(1, c);
+    return v;
+  }
+
+  auto p = std::string::size_type(0);
+  while (1) {  /// split with separator ///
+    auto pos = s.find(separator, p);
+    if (pos == std::string::npos) {
+      if (ignore_empty && p - n + 1 == s.size())
+        break;
+      v.emplace_back(s.begin() + p, s.end());
+      break;
+    }
+    if (!ignore_empty || p != pos)
+      v.emplace_back(s.begin() + p, s.begin() + pos);
+    p = pos + n;
+  }
+  return v;
+}
+
 /////////////////////////////////////////////////
 void RealSensePlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
   // Output the name of the model
@@ -116,14 +162,32 @@ void RealSensePlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
   this->world = this->rsModel->GetWorld();
 
   // Sensors Manager
-  sensors::SensorManager *smanager = sensors::SensorManager::Instance();
+  sensors::SensorManager* smanager = sensors::SensorManager::Instance();
+
+  sensors::Sensor_V sensors = smanager->GetSensors();
+  std::vector<int> idx(4);
+  for (int i = 0; i < sensors.size(); i++) {
+    std::vector<std::string> names = split(sensors[i]->ScopedName(), std::string("::"));
+    if (names[1] == this->rsModel->GetName() && names[3] == prefix + DEPTH_CAMERA_NAME)
+      idx[0] = i;
+    else if (names[1] == this->rsModel->GetName() && names[3] == prefix + IRED1_CAMERA_NAME)
+      idx[1] = i;
+    else if (names[1] == this->rsModel->GetName() && names[3] == prefix + IRED2_CAMERA_NAME)
+      idx[2] = i;
+    else if (names[1] == this->rsModel->GetName() && names[3] == prefix + COLOR_CAMERA_NAME)
+      idx[3] = i;
+  }
 
   // Get Cameras Renderers
-  this->depthCam = std::dynamic_pointer_cast<sensors::DepthCameraSensor>(smanager->GetSensor(prefix + DEPTH_CAMERA_NAME))->DepthCamera();
+  // this->depthCam = std::dynamic_pointer_cast<sensors::DepthCameraSensor>(smanager->GetSensor(prefix + DEPTH_CAMERA_NAME))->DepthCamera();
 
-  this->ired1Cam = std::dynamic_pointer_cast<sensors::CameraSensor>(smanager->GetSensor(prefix + IRED1_CAMERA_NAME))->Camera();
-  this->ired2Cam = std::dynamic_pointer_cast<sensors::CameraSensor>(smanager->GetSensor(prefix + IRED2_CAMERA_NAME))->Camera();
-  this->colorCam = std::dynamic_pointer_cast<sensors::CameraSensor>(smanager->GetSensor(prefix + COLOR_CAMERA_NAME))->Camera();
+  // this->ired1Cam = std::dynamic_pointer_cast<sensors::CameraSensor>(smanager->GetSensor(prefix + IRED1_CAMERA_NAME))->Camera();
+  // this->ired2Cam = std::dynamic_pointer_cast<sensors::CameraSensor>(smanager->GetSensor(prefix + IRED2_CAMERA_NAME))->Camera();
+  // this->colorCam = std::dynamic_pointer_cast<sensors::CameraSensor>(smanager->GetSensor(prefix + COLOR_CAMERA_NAME))->Camera();
+  this->depthCam = std::dynamic_pointer_cast<sensors::DepthCameraSensor>(sensors[idx[0]])->DepthCamera();
+  this->ired1Cam = std::dynamic_pointer_cast<sensors::CameraSensor>(sensors[idx[1]])->Camera();
+  this->ired2Cam = std::dynamic_pointer_cast<sensors::CameraSensor>(sensors[idx[2]])->Camera();
+  this->colorCam = std::dynamic_pointer_cast<sensors::CameraSensor>(sensors[idx[3]])->Camera();
 
   // Check if camera renderers have been found successfuly
   if (!this->depthCam) {
@@ -146,7 +210,7 @@ void RealSensePlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
   // Resize Depth Map dimensions
   try {
     this->depthMap.resize(this->depthCam->ImageWidth() * this->depthCam->ImageHeight());
-  } catch (std::bad_alloc &e) {
+  } catch (std::bad_alloc& e) {
     std::cerr << "RealSensePlugin: depthMap allocation failed: " << e.what() << std::endl;
     return;
   }
@@ -207,7 +271,7 @@ void RealSensePlugin::OnNewDepthFrame() {
   msgs::ImageStamped msg;
 
   // Convert Float depth data to RealSense depth data
-  const float *depthDataFloat = this->depthCam->DepthData();
+  const float* depthDataFloat = this->depthCam->DepthData();
   for (unsigned int i = 0; i < imageSize; ++i) {
     // Check clipping and overflow
     if (depthDataFloat[i] < rangeMinDepth_ || depthDataFloat[i] > rangeMaxDepth_ || depthDataFloat[i] > DEPTH_SCALE_M * UINT16_MAX || depthDataFloat[i] < 0) {

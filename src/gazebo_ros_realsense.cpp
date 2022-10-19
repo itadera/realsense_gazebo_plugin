@@ -72,8 +72,7 @@ void GazeboRosRealsense::OnNewFrame(const rendering::CameraPtr cam, const transp
   this->image_msg_.header.stamp.nsec = current_time.nsec;
 
   // set image encoding
-  const std::map<std::string, std::string> supported_image_encodings = { { "RGB_INT8", sensor_msgs::image_encodings::RGB8 },
-                                                                         { "L_INT8", sensor_msgs::image_encodings::TYPE_8UC1 } };
+  const std::map<std::string, std::string> supported_image_encodings = { { "RGB_INT8", sensor_msgs::image_encodings::RGB8 }, { "L_INT8", sensor_msgs::image_encodings::TYPE_8UC1 } };
   const auto pixel_format = supported_image_encodings.at(cam->ImageFormat());
 
   // copy from simulation image to ROS msg
@@ -196,8 +195,7 @@ void GazeboRosRealsense::OnNewDepthFrame() {
   std::string pixel_format = sensor_msgs::image_encodings::TYPE_16UC1;
 
   // copy from simulation image to ROS msg
-  fillImage(this->depth_msg_, pixel_format, this->depthCam->ImageHeight(), this->depthCam->ImageWidth(), 2 * this->depthCam->ImageWidth(),
-            reinterpret_cast<const void *>(this->depthMap.data()));
+  fillImage(this->depth_msg_, pixel_format, this->depthCam->ImageHeight(), this->depthCam->ImageWidth(), 2 * this->depthCam->ImageWidth(), reinterpret_cast<const void *>(this->depthMap.data()));
 
   // publish to ROS
   auto depth_info_msg = cameraInfo(this->depth_msg_, this->depthCam->HFOV().Radian());
