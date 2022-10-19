@@ -187,7 +187,6 @@ void GazeboRosRealsense::OnNewDepthFrame() {
 
   // copy data into image
   this->depth_msg_.header.frame_id = this->cameraParamsMap_[DEPTH_CAMERA_NAME].optical_frame;
-  ;
   this->depth_msg_.header.stamp.sec = current_time.sec;
   this->depth_msg_.header.stamp.nsec = current_time.nsec;
 

@@ -126,13 +126,13 @@ void RealSensePlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
     else if (name == "infrared2CameraInfoTopicName")
       cameraParamsMap_[IRED2_CAMERA_NAME].camera_info_topic_name = _sdf->GetValue()->GetAsString();
     else if (name == "colorOpticalframeName")
-      cameraParamsMap_[COLOR_CAMERA_NAME].optical_frame = _sdf->GetValue()->GetAsString();
+      cameraParamsMap_[COLOR_CAMERA_NAME].optical_frame = _model->GetName() + "/" + _sdf->GetValue()->GetAsString();
     else if (name == "depthOpticalframeName")
-      cameraParamsMap_[DEPTH_CAMERA_NAME].optical_frame = _sdf->GetValue()->GetAsString();
+      cameraParamsMap_[DEPTH_CAMERA_NAME].optical_frame = _model->GetName() + "/" + _sdf->GetValue()->GetAsString();
     else if (name == "infrared1OpticalframeName")
-      cameraParamsMap_[IRED1_CAMERA_NAME].optical_frame = _sdf->GetValue()->GetAsString();
+      cameraParamsMap_[IRED1_CAMERA_NAME].optical_frame = _model->GetName() + "/" + _sdf->GetValue()->GetAsString();
     else if (name == "infrared2OpticalframeName")
-      cameraParamsMap_[IRED2_CAMERA_NAME].optical_frame = _sdf->GetValue()->GetAsString();
+      cameraParamsMap_[IRED2_CAMERA_NAME].optical_frame = _model->GetName() + "/" + _sdf->GetValue()->GetAsString();
     else if (name == "rangeMinDepth")
       _sdf->GetValue()->Get(rangeMinDepth_);
     else if (name == "rangeMaxDepth")
